@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { BmiData, WellnessProfileData } from '../types';
+import { BmiData, WellnessProfileData, WellnessConsultationData } from '../types';
 import { WhatsappIcon } from './icons/WhatsappIcon';
 import WellnessProfileForm from './WellnessProfileForm';
 import { FileTextIcon } from './icons/DocumentIcon';
 import supabase from '../supabaseClient';
+import WellnessConsultationForm from './WellnessConsultationForm';
+import { ClipboardListIcon } from './icons/DocumentIcon';
+
 
 interface UserCardProps {
     data: BmiData;
@@ -45,40 +48,56 @@ const UserCard: React.FC<UserCardProps> = ({ data, onDelete, onUpdateStatus, onU
     const [isSavingNotes, setIsSavingNotes] = useState(false);
 
     const [wellnessProfile, setWellnessProfile] = useState<WellnessProfileData | null>(null);
-    const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+    const [consultation, setConsultation] = useState<WellnessConsultationData | null>(null);
+    const [isLoadingData, setIsLoadingData] = useState(false);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [isConsultationModalOpen, setIsConsultationModalOpen] = useState(false);
 
-    const fetchWellnessProfile = async () => {
+    const fetchData = async () => {
         if (!data.id) return;
-        setIsLoadingProfile(true);
-        const { data: profileData, error } = await supabase
+        setIsLoadingData(true);
+        const { data: profileData, error: profileError } = await supabase
             .from('wellness_profiles')
             .select('*')
             .eq('user_id', data.id)
-            .maybeSingle(); 
+            .maybeSingle();
+        
+        const { data: consultationData, error: consultationError } = await supabase
+            .from('wellness_consultations')
+            .select('*')
+            .eq('user_id', data.id)
+            .maybeSingle();
 
-        if (error) {
-            console.error('Error fetching wellness profile:', error);
-        } else {
-            setWellnessProfile(profileData);
-        }
-        setIsLoadingProfile(false);
+        if (profileError) console.error('Error fetching wellness profile:', profileError);
+        else setWellnessProfile(profileData);
+
+        if (consultationError) console.error('Error fetching consultation:', consultationError);
+        else setConsultation(consultationData);
+
+        setIsLoadingData(false);
     };
 
     useEffect(() => {
-        if (isExpanded && data.id && wellnessProfile === null) {
-            fetchWellnessProfile();
+        if (isExpanded && data.id) {
+            fetchData();
         }
     }, [isExpanded, data.id]);
 
     const handleProfileSuccess = (newProfileData: WellnessProfileData) => {
         setWellnessProfile(newProfileData);
         setIsProfileModalOpen(false);
-        
-        // Automatización: Actualizar estado a "Evaluación Realizada"
         const currentStatus = data.estado || 'Nuevo';
         const precedingStatuses = ['Nuevo', 'Contactado', 'Evaluación Agendada'];
-    
+        if (data.id && precedingStatuses.includes(currentStatus)) {
+            onUpdateStatus(data.id, 'Evaluación Realizada');
+        }
+    };
+
+    const handleConsultationSuccess = (newConsultation: WellnessConsultationData) => {
+        setConsultation(newConsultation);
+        setIsConsultationModalOpen(false);
+        const currentStatus = data.estado || 'Nuevo';
+        const precedingStatuses = ['Nuevo', 'Contactado', 'Evaluación Agendada'];
         if (data.id && precedingStatuses.includes(currentStatus)) {
             onUpdateStatus(data.id, 'Evaluación Realizada');
         }
@@ -191,27 +210,15 @@ const UserCard: React.FC<UserCardProps> = ({ data, onDelete, onUpdateStatus, onU
                                 
                                 <div className="mt-4 border-t pt-4">
                                      <h4 className="text-sm font-semibold text-gray-700 mb-2">Acciones Rápidas</h4>
-                                     <div className="flex flex-col sm:flex-row gap-2">
-                                        <button
-                                            onClick={handleWhatsAppClick}
-                                            className="flex-1 bg-green-500 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-green-600 transition-colors duration-300 flex items-center justify-center"
-                                            aria-label={`Contactar a ${data.nombre} por WhatsApp`}
-                                        >
-                                            <WhatsappIcon />
-                                            <span className="ml-2">Contactar</span>
-                                        </button>
-                                         {isLoadingProfile ? (
-                                             <div className="flex-1 flex justify-center items-center bg-gray-200 text-gray-600 py-2.5 px-4 rounded-lg font-semibold">Cargando...</div>
-                                         ) : (
-                                            <button
-                                                onClick={() => setIsProfileModalOpen(true)}
-                                                className="flex-1 bg-blue-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-300 flex items-center justify-center"
-                                            >
-                                                <FileTextIcon />
-                                                {wellnessProfile ? 'Ver / Editar Evaluación' : 'Realizar Evaluación'}
-                                            </button>
-                                         )}
-                                    </div>
+                                     {isLoadingData ? (
+                                        <div className="flex justify-center items-center h-24 bg-gray-100 rounded-lg"><p>Cargando datos...</p></div>
+                                     ) : (
+                                        <div className="flex flex-col sm:flex-row gap-2">
+                                            <button onClick={handleWhatsAppClick} className="flex-1 bg-green-500 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-green-600 transition-colors duration-300 flex items-center justify-center"><WhatsappIcon /><span className="ml-2">Contactar</span></button>
+                                            <button onClick={() => setIsProfileModalOpen(true)} className="flex-1 bg-blue-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-300 flex items-center justify-center"><FileTextIcon />{wellnessProfile ? 'Ver / Editar Perfil' : 'Realizar Perfil'}</button>
+                                            <button onClick={() => setIsConsultationModalOpen(true)} className="flex-1 bg-purple-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-purple-700 transition-colors duration-300 flex items-center justify-center"><ClipboardListIcon />{consultation ? 'Ver Consulta' : 'Iniciar Consulta'}</button>
+                                        </div>
+                                     )}
                                 </div>
 
                                 <div>
@@ -249,6 +256,14 @@ const UserCard: React.FC<UserCardProps> = ({ data, onDelete, onUpdateStatus, onU
                     profileData={wellnessProfile}
                     onClose={() => setIsProfileModalOpen(false)}
                     onSuccess={handleProfileSuccess}
+                />
+            )}
+            {isConsultationModalOpen && data.id && (
+                <WellnessConsultationForm
+                    user={data}
+                    consultationData={consultation}
+                    onClose={() => setIsConsultationModalOpen(false)}
+                    onSuccess={handleConsultationSuccess}
                 />
             )}
         </>
