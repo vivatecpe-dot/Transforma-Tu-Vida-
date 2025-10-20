@@ -44,3 +44,32 @@ export interface WellnessProfileData {
     // Come Gratis
     free_meal_interest?: 'SI' | 'MÁS INFO' | 'NO' | null;
 }
+
+export interface WellnessConsultationData {
+    id?: number;
+    user_id: number;
+    created_at?: string;
+
+    // Objetivo - Conectar
+    clothing_size?: string;
+    body_parts_to_improve?: string;
+    previous_attempts?: string;
+    wardrobe_goal?: string;
+    benefit_of_achieving_goals?: string;
+    plan_3_to_6_months?: string;
+    motivation_today?: string;
+    readiness_scale?: number;
+
+    // Cuestionario de nutrición
+    daily_food_spending?: string;
+    daily_coffee_spending?: string;
+    weekly_alcohol_spending?: string;
+    weekly_takeout_spending?: string;
+
+    // Referidos
+    consultation_referrals?: { name: string; phone: string }[];
+
+    // Notas del Coach
+    coach_notes?: string;
+    mentor_feedback?: string;
+}
