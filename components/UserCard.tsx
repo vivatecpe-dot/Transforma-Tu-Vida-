@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { BmiData, WellnessProfileData, WellnessConsultationData } from '../types';
+import ReactDOM from 'react-dom/client';
+import { BmiData, WellnessProfileData, WellnessQuestionnaireData } from '../types';
 import { WhatsappIcon } from './icons/WhatsappIcon';
 import WellnessProfileForm from './WellnessProfileForm';
-import { FileTextIcon, ClipboardListIcon } from './icons/DocumentIcon';
+import { FileTextIcon, ClipboardListIcon, DownloadIcon } from './icons/DocumentIcon';
 import supabase from '../supabaseClient';
-import WellnessConsultationForm from './WellnessConsultationForm';
+import WellnessQuestionnaireForm from './WellnessQuestionnaireForm';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 
 interface UserCardProps {
@@ -45,13 +48,14 @@ const UserCard: React.FC<UserCardProps> = ({ data, onDelete, onUpdateStatus, onU
     const [isUpdating, setIsUpdating] = useState(false);
     const [notes, setNotes] = useState(data.notas || '');
     const [isSavingNotes, setIsSavingNotes] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
 
     const [wellnessProfile, setWellnessProfile] = useState<WellnessProfileData | null>(null);
-    const [consultation, setConsultation] = useState<WellnessConsultationData | null>(null);
+    const [questionnaire, setQuestionnaire] = useState<WellnessQuestionnaireData | null>(null);
     const [isLoadingData, setIsLoadingData] = useState(false);
     const [dataError, setDataError] = useState<string | null>(null);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-    const [isConsultationModalOpen, setIsConsultationModalOpen] = useState(false);
+    const [isQuestionnaireModalOpen, setIsQuestionnaireModalOpen] = useState(false);
 
     const fetchData = async () => {
         if (!data.id) return;
@@ -74,25 +78,69 @@ const UserCard: React.FC<UserCardProps> = ({ data, onDelete, onUpdateStatus, onU
             setWellnessProfile(profileData);
         }
 
-        // Fetch consultation data
-        const { data: consultationData, error: consultationError } = await supabase
+        // Fetch questionnaire data
+        const { data: questionnaireData, error: questionnaireError } = await supabase
             .from('wellness_consultations')
             .select('*')
             .eq('user_id', data.id)
             .maybeSingle();
 
-        if (consultationError) {
-            console.error('Error fetching consultation:', consultationError);
-            if (consultationError.code === '42P01') {
+        if (questionnaireError) {
+            console.error('Error fetching questionnaire:', questionnaireError);
+            if (questionnaireError.code === '42P01') {
                 setDataError(prev => (prev ? prev + " " : "") + "Error: La tabla 'wellness_consultations' no existe. Por favor, créala en Supabase.");
             }
         } else {
-            setConsultation(consultationData);
+            setQuestionnaire(questionnaireData);
         }
 
         setIsLoadingData(false);
     };
+    
+    const handleExportPDF = async (formType: 'profile' | 'questionnaire') => {
+        setIsExporting(true);
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'fixed';
+        tempContainer.style.left = '-9999px'; // Render off-screen
+        document.body.appendChild(tempContainer);
+        
+        const root = ReactDOM.createRoot(tempContainer);
 
+        const FormComponent = formType === 'profile' ? WellnessProfileForm : WellnessQuestionnaireForm;
+        const dataToRender = formType === 'profile' ? wellnessProfile : questionnaire;
+        const fileName = `${formType === 'profile' ? 'Perfil_de_Bienestar' : 'Cuestionario_de_Evaluacion'}_${data.nombre.replace(/ /g, '_')}.pdf`;
+
+        // Render the form in a special 'export' mode to get the content
+        root.render(
+            <FormComponent
+                user={data}
+                profileData={formType === 'profile' ? dataToRender as WellnessProfileData : null}
+                questionnaireData={formType === 'questionnaire' ? dataToRender as WellnessQuestionnaireData : null}
+                onClose={() => {}}
+                onSuccess={() => {}}
+                isExportMode={true}
+            />
+        );
+
+        // Wait a bit for rendering
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        const formElement = tempContainer.querySelector<HTMLElement>('.pdf-export-content');
+        if (formElement) {
+            const canvas = await html2canvas(formElement, { scale: 2 });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(fileName);
+        }
+
+        // Cleanup
+        root.unmount();
+        document.body.removeChild(tempContainer);
+        setIsExporting(false);
+    };
 
     useEffect(() => {
         if (isExpanded && data.id) {
@@ -110,9 +158,9 @@ const UserCard: React.FC<UserCardProps> = ({ data, onDelete, onUpdateStatus, onU
         }
     };
 
-    const handleConsultationSuccess = (newConsultation: WellnessConsultationData) => {
-        setConsultation(newConsultation);
-        setIsConsultationModalOpen(false);
+    const handleQuestionnaireSuccess = (newQuestionnaire: WellnessQuestionnaireData) => {
+        setQuestionnaire(newQuestionnaire);
+        setIsQuestionnaireModalOpen(false);
         const currentStatus = data.estado || 'Nuevo';
         const precedingStatuses = ['Nuevo', 'Contactado', 'Evaluación Agendada'];
         if (data.id && precedingStatuses.includes(currentStatus)) {
@@ -232,10 +280,16 @@ const UserCard: React.FC<UserCardProps> = ({ data, onDelete, onUpdateStatus, onU
                                      ) : dataError ? (
                                         <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">{dataError}</div>
                                      ) : (
-                                        <div className="flex flex-col sm:flex-row gap-2">
-                                            <button onClick={handleWhatsAppClick} className="flex-1 bg-green-500 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-green-600 transition-colors duration-300 flex items-center justify-center"><WhatsappIcon /><span className="ml-2">Contactar</span></button>
-                                            <button onClick={() => setIsProfileModalOpen(true)} className="flex-1 bg-blue-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-300 flex items-center justify-center"><FileTextIcon />{wellnessProfile ? 'Ver / Editar Perfil' : 'Realizar Perfil'}</button>
-                                            <button onClick={() => setIsConsultationModalOpen(true)} className="flex-1 bg-purple-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-purple-700 transition-colors duration-300 flex items-center justify-center"><ClipboardListIcon />{consultation ? 'Ver Consulta' : 'Iniciar Consulta'}</button>
+                                        <div className="space-y-2">
+                                            <div className="flex flex-col sm:flex-row gap-2">
+                                                <button onClick={handleWhatsAppClick} className="flex-1 bg-green-500 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-green-600 transition-colors duration-300 flex items-center justify-center"><WhatsappIcon /><span className="ml-2">Contactar</span></button>
+                                                <button onClick={() => setIsProfileModalOpen(true)} className="flex-1 bg-blue-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-300 flex items-center justify-center"><FileTextIcon />{wellnessProfile ? 'Ver / Editar Perfil' : 'Realizar Perfil'}</button>
+                                                <button onClick={() => setIsQuestionnaireModalOpen(true)} className="flex-1 bg-purple-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-purple-700 transition-colors duration-300 flex items-center justify-center"><ClipboardListIcon />{questionnaire ? 'Ver Cuestionario' : 'Realizar Cuestionario'}</button>
+                                            </div>
+                                            <div className="flex flex-col sm:flex-row gap-2">
+                                                {wellnessProfile && <button onClick={() => handleExportPDF('profile')} disabled={isExporting} className="flex-1 bg-gray-700 text-white py-2 px-4 rounded-lg font-semibold hover:bg-gray-800 transition-colors duration-300 flex items-center justify-center disabled:bg-gray-400"><DownloadIcon />{isExporting ? 'Exportando...' : 'Exportar Perfil'}</button>}
+                                                {questionnaire && <button onClick={() => handleExportPDF('questionnaire')} disabled={isExporting} className="flex-1 bg-gray-700 text-white py-2 px-4 rounded-lg font-semibold hover:bg-gray-800 transition-colors duration-300 flex items-center justify-center disabled:bg-gray-400"><DownloadIcon />{isExporting ? 'Exportando...' : 'Exportar Cuestionario'}</button>}
+                                            </div>
                                         </div>
                                      )}
                                 </div>
@@ -277,12 +331,12 @@ const UserCard: React.FC<UserCardProps> = ({ data, onDelete, onUpdateStatus, onU
                     onSuccess={handleProfileSuccess}
                 />
             )}
-            {isConsultationModalOpen && data.id && (
-                <WellnessConsultationForm
+            {isQuestionnaireModalOpen && data.id && (
+                <WellnessQuestionnaireForm
                     user={data}
-                    consultationData={consultation}
-                    onClose={() => setIsConsultationModalOpen(false)}
-                    onSuccess={handleConsultationSuccess}
+                    questionnaireData={questionnaire}
+                    onClose={() => setIsQuestionnaireModalOpen(false)}
+                    onSuccess={handleQuestionnaireSuccess}
                 />
             )}
         </>

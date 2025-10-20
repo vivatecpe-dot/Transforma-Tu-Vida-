@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { BmiData, WellnessConsultationData } from '../types';
+import { BmiData, WellnessQuestionnaireData } from '../types';
 import supabase from '../supabaseClient';
 import LoadingSpinner from './LoadingSpinner';
 
-interface WellnessConsultationFormProps {
+interface WellnessQuestionnaireFormProps {
     user: BmiData;
-    consultationData: WellnessConsultationData | null;
+    questionnaireData: WellnessQuestionnaireData | null;
     onClose: () => void;
-    onSuccess: (consultation: WellnessConsultationData) => void;
+    onSuccess: (questionnaire: WellnessQuestionnaireData) => void;
 }
 
-const WellnessConsultationForm: React.FC<WellnessConsultationFormProps> = ({ user, consultationData, onClose, onSuccess }) => {
+const WellnessQuestionnaireForm: React.FC<WellnessQuestionnaireFormProps> = ({ user, questionnaireData, onClose, onSuccess }) => {
     const [step, setStep] = useState(1);
-    const [formData, setFormData] = useState<Partial<WellnessConsultationData>>({
+    const [formData, setFormData] = useState<Partial<WellnessQuestionnaireData>>({
         readiness_scale: 5,
         consultation_referrals: [{ name: '', phone: '' }, { name: '', phone: '' }, { name: '', phone: '' }, { name: '', phone: '' }, { name: '', phone: '' }]
     });
@@ -20,13 +20,13 @@ const WellnessConsultationForm: React.FC<WellnessConsultationFormProps> = ({ use
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (consultationData) {
+        if (questionnaireData) {
             setFormData({
-                ...consultationData,
-                consultation_referrals: consultationData.consultation_referrals && consultationData.consultation_referrals.length > 0 ? consultationData.consultation_referrals : [{ name: '', phone: '' }, { name: '', phone: '' }, { name: '', phone: '' }, { name: '', phone: '' }, { name: '', phone: '' }],
+                ...questionnaireData,
+                consultation_referrals: questionnaireData.consultation_referrals && questionnaireData.consultation_referrals.length > 0 ? questionnaireData.consultation_referrals : [{ name: '', phone: '' }, { name: '', phone: '' }, { name: '', phone: '' }, { name: '', phone: '' }, { name: '', phone: '' }],
             });
         }
-    }, [consultationData]);
+    }, [questionnaireData]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
@@ -51,7 +51,7 @@ const WellnessConsultationForm: React.FC<WellnessConsultationFormProps> = ({ use
             return;
         }
 
-        const dataToSave: Partial<WellnessConsultationData> = {
+        const dataToSave: Partial<WellnessQuestionnaireData> = {
             ...formData,
             user_id: user.id,
         };
@@ -67,11 +67,11 @@ const WellnessConsultationForm: React.FC<WellnessConsultationFormProps> = ({ use
         
         let response;
 
-        if (consultationData?.id) {
+        if (questionnaireData?.id) {
             response = await supabase
                 .from('wellness_consultations')
                 .update(dataToSave)
-                .eq('id', consultationData.id)
+                .eq('id', questionnaireData.id)
                 .select()
                 .single();
         } else {
@@ -90,9 +90,9 @@ const WellnessConsultationForm: React.FC<WellnessConsultationFormProps> = ({ use
             if (supabaseError.code === '42P01') {
                 setError("Error: La tabla 'wellness_consultations' no existe en tu base de datos. Por favor, créala usando el editor SQL de Supabase antes de guardar.");
             } else if (supabaseError.code === '23505') { 
-                setError("Error: Ya existe una consulta para este usuario. Esto puede ocurrir si los permisos de lectura (RLS) en la tabla 'wellness_consultations' impiden que la aplicación la detecte. Por favor, verifica tus políticas de RLS para permitir la lectura (SELECT).");
+                setError("Error: Ya existe un cuestionario para este usuario. Esto puede ocurrir si los permisos de lectura (RLS) en la tabla 'wellness_consultations' impiden que la aplicación lo detecte. Por favor, verifica tus políticas de RLS para permitir la lectura (SELECT).");
             } else {
-                setError("Hubo un error al guardar la consulta. Revisa la consola para más detalles.");
+                setError("Hubo un error al guardar el cuestionario. Revisa la consola para más detalles.");
             }
             setIsLoading(false);
         } else {
@@ -184,7 +184,7 @@ const WellnessConsultationForm: React.FC<WellnessConsultationFormProps> = ({ use
             <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl transform transition-all duration-300 relative max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 <header className="sticky top-0 bg-gray-50 p-4 border-b rounded-t-lg flex justify-between items-center z-10">
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-800">Consulta Guiada de Bienestar</h2>
+                        <h2 className="text-2xl font-bold text-gray-800">Cuestionario de Evaluación de Bienestar</h2>
                         <p className="text-sm text-gray-600">para <span className="font-semibold">{user.nombre}</span></p>
                     </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Cerrar"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
@@ -203,7 +203,7 @@ const WellnessConsultationForm: React.FC<WellnessConsultationFormProps> = ({ use
                         <button onClick={() => setStep(s => Math.min(5, s + 1))} className="bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700">Siguiente</button>
                     ) : (
                         <button onClick={handleSubmit} disabled={isLoading} className="bg-green-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-green-700 flex items-center disabled:bg-gray-400">
-                             {isLoading ? <LoadingSpinner /> : (consultationData ? 'Actualizar Consulta' : 'Finalizar y Guardar')}
+                             {isLoading ? <LoadingSpinner /> : (questionnaireData ? 'Actualizar Cuestionario' : 'Finalizar y Guardar')}
                         </button>
                     )}
                 </footer>
@@ -212,4 +212,4 @@ const WellnessConsultationForm: React.FC<WellnessConsultationFormProps> = ({ use
     );
 };
 
-export default WellnessConsultationForm;
+export default WellnessQuestionnaireForm;
