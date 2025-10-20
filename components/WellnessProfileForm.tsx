@@ -89,7 +89,6 @@ const WellnessProfileForm: React.FC<WellnessProfileFormProps> = ({ user, profile
             return;
         }
 
-        // Preparamos los datos, asegurándonos de no incluir 'id' o 'created_at' que son gestionados por la DB.
         const dataToSave: Partial<WellnessProfileData> = {
             ...formData,
             user_id: user.id,
@@ -99,7 +98,6 @@ const WellnessProfileForm: React.FC<WellnessProfileFormProps> = ({ user, profile
 
         let response;
         if (profileData?.id) {
-            // Es una actualización porque ya tenemos un perfil
             response = await supabase
                 .from('wellness_profiles')
                 .update(dataToSave)
@@ -107,7 +105,6 @@ const WellnessProfileForm: React.FC<WellnessProfileFormProps> = ({ user, profile
                 .select()
                 .single();
         } else {
-            // Es una inserción porque no hay perfil existente
             response = await supabase
                 .from('wellness_profiles')
                 .insert(dataToSave)
@@ -119,7 +116,11 @@ const WellnessProfileForm: React.FC<WellnessProfileFormProps> = ({ user, profile
 
         if (supabaseError) {
             console.error("Supabase error:", supabaseError);
-            setError("Hubo un error al guardar el perfil. Revisa la consola para más detalles y verifica la configuración de tu tabla 'wellness_profiles'.");
+            if (supabaseError.code === '23505') { // Unique constraint violation
+                 setError("Error: Ya existe un perfil para este usuario. Esto puede ocurrir si los permisos de lectura (RLS) en la tabla 'wellness_profiles' impiden que la aplicación lo detecte. Por favor, verifica tus políticas de RLS para permitir la lectura (SELECT).");
+            } else {
+                setError("Hubo un error al guardar el perfil. Revisa la consola para más detalles y verifica la configuración de tu tabla 'wellness_profiles'.");
+            }
             setIsLoading(false);
         } else {
             onSuccess(data);
@@ -207,7 +208,7 @@ const WellnessProfileForm: React.FC<WellnessProfileFormProps> = ({ user, profile
                         </div>
                     </fieldset>
 
-                    {error && <p className="text-red-500 text-sm text-center mt-4">{error}</p>}
+                    {error && <p className="text-red-500 text-sm text-center mt-4 bg-red-50 p-3 rounded-md">{error}</p>}
                 </form>
 
                 <footer className="sticky bottom-0 bg-gray-50 p-4 border-t rounded-b-lg z-10">

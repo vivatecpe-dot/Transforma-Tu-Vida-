@@ -80,7 +80,13 @@ const WellnessConsultationForm: React.FC<WellnessConsultationFormProps> = ({ use
 
         if (supabaseError) {
             console.error("Supabase error:", supabaseError);
-            setError("Hubo un error al guardar la consulta. Revisa la consola para más detalles y verifica la configuración de tu tabla 'wellness_consultations'.");
+            if (supabaseError.code === '42P01') {
+                setError("Error: La tabla 'wellness_consultations' no existe en tu base de datos. Por favor, créala usando el editor SQL de Supabase antes de guardar.");
+            } else if (supabaseError.code === '23505') { 
+                setError("Error: Ya existe una consulta para este usuario. Esto puede ocurrir si los permisos de lectura (RLS) en la tabla 'wellness_consultations' impiden que la aplicación la detecte. Por favor, verifica tus políticas de RLS para permitir la lectura (SELECT).");
+            } else {
+                setError("Hubo un error al guardar la consulta. Revisa la consola para más detalles.");
+            }
             setIsLoading(false);
         } else {
             onSuccess(data);
@@ -180,7 +186,7 @@ const WellnessConsultationForm: React.FC<WellnessConsultationFormProps> = ({ use
                 <div className="overflow-y-auto px-6 pb-6" style={{ maxHeight: 'calc(90vh - 150px)' }}>
                      <div className="mt-4">
                         {renderStep()}
-                        {error && <p className="text-red-500 text-sm text-center mt-4">{error}</p>}
+                        {error && <p className="text-red-500 text-sm text-center mt-4 bg-red-50 p-3 rounded-md">{error}</p>}
                     </div>
                 </div>
 

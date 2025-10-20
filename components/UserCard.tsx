@@ -50,32 +50,50 @@ const UserCard: React.FC<UserCardProps> = ({ data, onDelete, onUpdateStatus, onU
     const [wellnessProfile, setWellnessProfile] = useState<WellnessProfileData | null>(null);
     const [consultation, setConsultation] = useState<WellnessConsultationData | null>(null);
     const [isLoadingData, setIsLoadingData] = useState(false);
+    const [dataError, setDataError] = useState<string | null>(null);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [isConsultationModalOpen, setIsConsultationModalOpen] = useState(false);
 
     const fetchData = async () => {
         if (!data.id) return;
         setIsLoadingData(true);
+        setDataError(null);
+
+        // Fetch wellness profile
         const { data: profileData, error: profileError } = await supabase
             .from('wellness_profiles')
             .select('*')
             .eq('user_id', data.id)
             .maybeSingle();
         
+        if (profileError) {
+            console.error('Error fetching wellness profile:', profileError);
+            if (profileError.code === '42P01') {
+                setDataError("Error: La tabla 'wellness_profiles' no existe. Por favor, créala en Supabase.");
+            }
+        } else {
+            setWellnessProfile(profileData);
+        }
+
+        // Fetch consultation data
         const { data: consultationData, error: consultationError } = await supabase
             .from('wellness_consultations')
             .select('*')
             .eq('user_id', data.id)
             .maybeSingle();
 
-        if (profileError) console.error('Error fetching wellness profile:', profileError);
-        else setWellnessProfile(profileData);
-
-        if (consultationError) console.error('Error fetching consultation:', consultationError);
-        else setConsultation(consultationData);
+        if (consultationError) {
+            console.error('Error fetching consultation:', consultationError);
+            if (consultationError.code === '42P01') {
+                setDataError(prev => (prev ? prev + " " : "") + "Error: La tabla 'wellness_consultations' no existe. Por favor, créala en Supabase.");
+            }
+        } else {
+            setConsultation(consultationData);
+        }
 
         setIsLoadingData(false);
     };
+
 
     useEffect(() => {
         if (isExpanded && data.id) {
@@ -212,6 +230,8 @@ const UserCard: React.FC<UserCardProps> = ({ data, onDelete, onUpdateStatus, onU
                                      <h4 className="text-sm font-semibold text-gray-700 mb-2">Acciones Rápidas</h4>
                                      {isLoadingData ? (
                                         <div className="flex justify-center items-center h-24 bg-gray-100 rounded-lg"><p>Cargando datos...</p></div>
+                                     ) : dataError ? (
+                                        <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">{dataError}</div>
                                      ) : (
                                         <div className="flex flex-col sm:flex-row gap-2">
                                             <button onClick={handleWhatsAppClick} className="flex-1 bg-green-500 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-green-600 transition-colors duration-300 flex items-center justify-center"><WhatsappIcon /><span className="ml-2">Contactar</span></button>
