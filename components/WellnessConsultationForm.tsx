@@ -51,21 +51,36 @@ const WellnessConsultationForm: React.FC<WellnessConsultationFormProps> = ({ use
             return;
         }
 
-        const dataToSave = {
+        const dataToSave: Partial<WellnessConsultationData> = {
             ...formData,
             user_id: user.id,
-            id: consultationData?.id,
         };
+        delete dataToSave.id;
+        delete dataToSave.created_at;
+        
+        let response;
 
-        const { data, error: supabaseError } = await supabase
-            .from('wellness_consultations')
-            .upsert(dataToSave, { onConflict: 'user_id' })
-            .select()
-            .single();
+        if (consultationData?.id) {
+            response = await supabase
+                .from('wellness_consultations')
+                .update(dataToSave)
+                .eq('id', consultationData.id)
+                .select()
+                .single();
+        } else {
+            response = await supabase
+                .from('wellness_consultations')
+                .insert(dataToSave)
+                .select()
+                .single();
+        }
+
+        const { data, error: supabaseError } = response;
+
 
         if (supabaseError) {
             console.error("Supabase error:", supabaseError);
-            setError("Hubo un error al guardar la consulta. Asegúrate de que la tabla 'wellness_consultations' existe.");
+            setError("Hubo un error al guardar la consulta. Revisa la consola para más detalles y verifica la configuración de tu tabla 'wellness_consultations'.");
             setIsLoading(false);
         } else {
             onSuccess(data);

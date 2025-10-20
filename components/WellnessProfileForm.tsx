@@ -89,21 +89,37 @@ const WellnessProfileForm: React.FC<WellnessProfileFormProps> = ({ user, profile
             return;
         }
 
-        const dataToSave = {
+        // Preparamos los datos, asegurándonos de no incluir 'id' o 'created_at' que son gestionados por la DB.
+        const dataToSave: Partial<WellnessProfileData> = {
             ...formData,
             user_id: user.id,
-            id: profileData?.id, // include id for upsert to know which row to update
         };
+        delete dataToSave.id;
+        delete dataToSave.created_at;
 
-        const { data, error: supabaseError } = await supabase
-            .from('wellness_profiles')
-            .upsert(dataToSave, { onConflict: 'user_id' })
-            .select()
-            .single();
+        let response;
+        if (profileData?.id) {
+            // Es una actualización porque ya tenemos un perfil
+            response = await supabase
+                .from('wellness_profiles')
+                .update(dataToSave)
+                .eq('id', profileData.id)
+                .select()
+                .single();
+        } else {
+            // Es una inserción porque no hay perfil existente
+            response = await supabase
+                .from('wellness_profiles')
+                .insert(dataToSave)
+                .select()
+                .single();
+        }
+        
+        const { data, error: supabaseError } = response;
 
         if (supabaseError) {
             console.error("Supabase error:", supabaseError);
-            setError("Hubo un error al guardar el perfil. Asegúrate de que la tabla 'wellness_profiles' existe y la columna 'user_id' es única.");
+            setError("Hubo un error al guardar el perfil. Revisa la consola para más detalles y verifica la configuración de tu tabla 'wellness_profiles'.");
             setIsLoading(false);
         } else {
             onSuccess(data);
