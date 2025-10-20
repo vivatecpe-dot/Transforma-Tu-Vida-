@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { BmiData, WellnessProfileData, WellnessConsultationData } from '../types';
 import { WhatsappIcon } from './icons/WhatsappIcon';
 import WellnessProfileForm from './WellnessProfileForm';
-import { FileTextIcon } from './icons/DocumentIcon';
+import { FileTextIcon, ClipboardListIcon } from './icons/DocumentIcon';
 import supabase from '../supabaseClient';
 import WellnessConsultationForm from './WellnessConsultationForm';
-import { ClipboardListIcon } from './icons/DocumentIcon';
 
 
 interface UserCardProps {
