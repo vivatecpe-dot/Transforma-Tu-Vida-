@@ -1,35 +1,18 @@
 import React from 'react';
 
-const HerbalifeLogo: React.FC<{ className?: string }> = ({ className = "h-8 w-auto" }) => {
+const HerbalifeLogo: React.FC<{ className?: string }> = ({ className = "h-10 w-auto" }) => {
     return (
-        <svg
-            className={className}
-            viewBox="0 0 160 40"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-label="Herbalife Logo"
-        >
-            {/* Generic Leaf Icon */}
-            <path
-                d="M20 5C10 5 5 15 5 20s5 15 15 15c10 0 15-10 15-15S30 5 20 5zM12.5 20c0-5 2.5-7.5 7.5-7.5s7.5 2.5 7.5 7.5c0 3-1 6-4 8l-3.5-3.5-3.5 3.5c-3-2-4-5-4-8z"
-                fill="#006D44"
-            />
-            <path
-                d="M20 12.5c-2.5 0-5 2-5 7.5 0 2 1 4 2.5 5.5l2.5-2.5 2.5 2.5c1.5-1.5 2.5-3.5 2.5-5.5 0-5.5-2.5-7.5-5-7.5z"
-                fill="#8CC63F"
-            />
-            {/* Text Part */}
-            <text
-                x="45"
-                y="28"
-                fontFamily="Arial, sans-serif"
-                fontSize="24"
-                fontWeight="bold"
-                fill="#333"
-            >
-                HERBALIFE
-            </text>
-        </svg>
+        <div className={`flex items-center ${className}`}>
+            <svg viewBox="0 0 40 40" className="h-full w-auto mr-2" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21.1111 2.22222C21.1111 2.22222 8.88889 10 8.88889 20C8.88889 30 21.1111 37.7778 21.1111 37.7778C21.1111 37.7778 33.3333 30 33.3333 20C33.3333 10 21.1111 2.22222 21.1111 2.22222Z" stroke="#006D44" strokeWidth="2.5"/>
+                <path d="M21.1111 11.1111C21.1111 11.1111 15.5556 15.5556 15.5556 20C15.5556 24.4444 21.1111 28.8889 21.1111 28.8889C21.1111 28.8889 26.6667 24.4444 26.6667 20C26.6667 15.5556 21.1111 11.1111 21.1111 11.1111Z" stroke="#8CC63F" strokeWidth="2.5"/>
+                <path d="M21.1111 20H33.3333M8.88889 20H21.1111M21.1111 2.22222V20V37.7778" stroke="#006D44" strokeWidth="2.5"/>
+            </svg>
+            <div className="text-left leading-tight">
+                <span className="text-xs font-semibold text-gray-700 block">Club de Nutrición</span>
+                <span className="text-sm font-bold text-green-800 block">Herbalife</span>
+            </div>
+        </div>
     );
 };
 
