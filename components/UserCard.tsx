@@ -74,6 +74,14 @@ const UserCard: React.FC<UserCardProps> = ({ data, onDelete, onUpdateStatus, onU
     const handleProfileSuccess = (newProfileData: WellnessProfileData) => {
         setWellnessProfile(newProfileData);
         setIsProfileModalOpen(false);
+        
+        // Automatización: Actualizar estado a "Evaluación Realizada"
+        const currentStatus = data.estado || 'Nuevo';
+        const precedingStatuses = ['Nuevo', 'Contactado', 'Evaluación Agendada'];
+    
+        if (data.id && precedingStatuses.includes(currentStatus)) {
+            onUpdateStatus(data.id, 'Evaluación Realizada');
+        }
     };
 
     const getCategoryStyles = (category: string): { color: string } => {
