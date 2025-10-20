@@ -74,6 +74,10 @@ const WellnessProfileForm: React.FC<WellnessProfileFormProps> = ({ user, profile
     
     const handleReferralChange = (index: number, field: 'name' | 'phone', value: string) => {
         const updatedReferrals = [...(formData.referrals || [])];
+        // Asegúrate de que haya un objeto en el índice para evitar errores
+        while (updatedReferrals.length <= index) {
+            updatedReferrals.push({ name: '', phone: '' });
+        }
         updatedReferrals[index] = { ...updatedReferrals[index], [field]: value };
         setFormData(prev => ({ ...prev, referrals: updatedReferrals }));
     };
@@ -89,8 +93,14 @@ const WellnessProfileForm: React.FC<WellnessProfileFormProps> = ({ user, profile
             return;
         }
 
+        // Limpiar los referidos: eliminar los que estén completamente vacíos
+        const cleanedReferrals = (formData.referrals || []).filter(
+            r => r.name.trim() !== '' || r.phone.trim() !== ''
+        );
+
         const dataToSave: Partial<WellnessProfileData> = {
             ...formData,
+            referrals: cleanedReferrals, // Usar los referidos limpios
             user_id: user.id,
         };
         delete dataToSave.id;
