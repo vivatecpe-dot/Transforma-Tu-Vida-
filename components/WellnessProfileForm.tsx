@@ -93,16 +93,25 @@ const WellnessProfileForm: React.FC<WellnessProfileFormProps> = ({ user, profile
             return;
         }
 
-        // Limpiar los referidos: eliminar los que estén completamente vacíos
         const cleanedReferrals = (formData.referrals || []).filter(
             r => r.name.trim() !== '' || r.phone.trim() !== ''
         );
 
         const dataToSave: Partial<WellnessProfileData> = {
             ...formData,
-            referrals: cleanedReferrals, // Usar los referidos limpios
+            referrals: cleanedReferrals,
             user_id: user.id,
         };
+        
+        // **SOLUCIÓN DEFINITIVA: Limpieza de datos antes de guardar**
+        // Convierte strings vacíos a null para campos de tipo 'time' para evitar errores de tipo de dato en la BD.
+        const fieldsToNullify: (keyof WellnessProfileData)[] = ['wake_up_time', 'sleep_time', 'breakfast_time'];
+        for (const key of fieldsToNullify) {
+            if (dataToSave[key] === '') {
+                (dataToSave as any)[key] = null;
+            }
+        }
+
         delete dataToSave.id;
         delete dataToSave.created_at;
 
@@ -126,7 +135,7 @@ const WellnessProfileForm: React.FC<WellnessProfileFormProps> = ({ user, profile
 
         if (supabaseError) {
             console.error("Supabase error:", supabaseError);
-            if (supabaseError.code === '23505') { // Unique constraint violation
+            if (supabaseError.code === '23505') {
                  setError("Error: Ya existe un perfil para este usuario. Esto puede ocurrir si los permisos de lectura (RLS) en la tabla 'wellness_profiles' impiden que la aplicación lo detecte. Por favor, verifica tus políticas de RLS para permitir la lectura (SELECT).");
             } else {
                 setError("Hubo un error al guardar el perfil. Revisa la consola para más detalles y verifica la configuración de tu tabla 'wellness_profiles'.");

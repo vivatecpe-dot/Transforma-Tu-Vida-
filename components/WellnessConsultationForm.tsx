@@ -55,6 +55,13 @@ const WellnessConsultationForm: React.FC<WellnessConsultationFormProps> = ({ use
             ...formData,
             user_id: user.id,
         };
+        
+        // **SOLUCIÓN: Limpieza de datos**
+        // Convierte un string vacío a null para el campo numérico para evitar errores en la BD.
+        if (dataToSave.readiness_scale === '' as any) {
+            dataToSave.readiness_scale = undefined; // o null
+        }
+
         delete dataToSave.id;
         delete dataToSave.created_at;
         
