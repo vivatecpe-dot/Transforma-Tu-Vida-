@@ -16,6 +16,7 @@ export interface WellnessProfileData {
     id?: number;
     user_id: number;
     created_at?: string;
+    is_complete?: boolean;
     
     // Metas
     goals?: string[];
@@ -45,10 +46,11 @@ export interface WellnessProfileData {
     free_meal_interest?: 'SI' | 'MÁS INFO' | 'NO' | null;
 }
 
-export interface WellnessConsultationData {
+export interface WellnessQuestionnaireData {
     id?: number;
     user_id: number;
     created_at?: string;
+    is_complete?: boolean;
 
     // Objetivo - Conectar
     clothing_size?: string;
