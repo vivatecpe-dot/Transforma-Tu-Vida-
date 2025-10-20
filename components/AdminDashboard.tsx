@@ -48,7 +48,7 @@ const AdminDashboard: React.FC = () => {
 
         if (error) {
             console.error('Error fetching registrations:', error);
-            setError('No se pudieron cargar los registros. Revisa que las columnas "estado" y "notas" existan en tu tabla de Supabase.');
+            setError('Error de Conexión: No se pudieron cargar los registros. Esto suele ocurrir por un problema de permisos en la base de datos. Por favor, ve a Supabase y asegúrate de que la Seguridad a Nivel de Fila (RLS) está desactivada en tu tabla "registros_imc" O que has creado una "Policy" que permite el acceso de lectura (SELECT).');
         } else if (data) {
             const sortedData = data.sort((a, b) => getPriority(b.categoria) - getPriority(a.categoria));
             setRegistrations(sortedData as BmiData[]);
